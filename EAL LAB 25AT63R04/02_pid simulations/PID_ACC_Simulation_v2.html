@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PID ACC Simulation Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-card: #1a2234;
+    --bg-card-hover: #1e2840;
+    --border: #2a3650;
+    --border-active: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-orange: #f59e0b;
+    --accent-purple: #8b5cf6;
+    --accent-pink: #ec4899;
+    --glow-blue: rgba(59, 130, 246, 0.15);
+    --glow-red: rgba(239, 68, 68, 0.15);
+    --glow-green: rgba(16, 185, 129, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; }
+
+  /* Header */
+  .header {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 14, 23, 0.8);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+
+  .header-title h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .header-title span {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .btn:hover { border-color: var(--accent-blue); background: var(--bg-card-hover); }
+
+  .btn-primary {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: #2563eb;
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+  }
+
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+  }
+
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  .btn-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }
+
+  .status-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  .status-running { background: rgba(16, 185, 129, 0.1); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+  .status-running::before { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); animation: pulse 1.5s infinite; }
+  .status-stopped { background: rgba(100, 116, 139, 0.1); color: var(--text-muted); border: 1px solid rgba(100, 116, 139, 0.3); }
+  .status-stopped::before { background: var(--text-muted); }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Main layout */
+  .main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: calc(100vh - 73px);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 73px);
+    background: rgba(17, 24, 39, 0.5);
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .section {
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .param-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .param-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 40px;
+  }
+
+  .param-slider-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .param-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    min-width: 52px;
+    text-align: right;
+    background: rgba(6, 182, 212, 0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(6, 182, 212, 0.15);
+  }
+
+  /* Scenario selector */
+  .scenario-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .scenario-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    text-align: left;
+    transition: all 0.2s;
+  }
+
+  .scenario-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+  .scenario-btn.active { border-color: var(--accent-blue); background: var(--glow-blue); color: var(--accent-blue); }
+
+  .scenario-btn .scenario-name {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 2px;
+    color: inherit;
+  }
+
+  .scenario-btn .scenario-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Content area */
+  .content {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 73px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Live metrics bar */
+  .metrics-bar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: all 0.3s;
+  }
+
+  .metric-card:hover { border-color: var(--border-active); }
+
+  .metric-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .metric-unit {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  .metric-value.blue { color: var(--accent-blue); }
+  .metric-value.cyan { color: var(--accent-cyan); }
+  .metric-value.green { color: var(--accent-green); }
+  .metric-value.orange { color: var(--accent-orange); }
+  .metric-value.red { color: var(--accent-red); }
+  .metric-value.purple { color: var(--accent-purple); }
+
+  /* Charts */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .chart-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 14px;
+  }
+
+  .legend-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-secondary);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  canvas {
+    width: 100% !important;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Vehicle visualization */
+  .vehicle-viz {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .vehicle-viz-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .road {
+    position: absolute;
+    bottom: 20px;
+    left: 40px;
+    right: 40px;
+    height: 3px;
+    background: var(--border);
+  }
+
+  .road::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: repeating-linear-gradient(90deg, var(--text-muted) 0px, var(--text-muted) 15px, transparent 15px, transparent 30px);
+    opacity: 0.3;
+  }
+
+  .vehicle {
+    position: absolute;
+    bottom: 26px;
+    width: 50px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    transition: left 0.15s ease-out;
+  }
+
+  .vehicle-ego {
+    background: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    color: white;
+    left: 80px;
+  }
+
+  .vehicle-lead {
+    background: var(--accent-red);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+    color: white;
+  }
+
+  .safe-zone {
+    position: absolute;
+    bottom: 20px;
+    height: 50px;
+    border: 1px dashed var(--accent-orange);
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.05);
+    transition: all 0.15s ease-out;
+  }
+
+  .safe-zone-label {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--accent-orange);
+    white-space: nowrap;
+  }
+
+  .distance-label {
+    position: absolute;
+    bottom: 55px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    transform: translateX(-50%);
+  }
+
+  /* Diagnosis panel */
+  .diagnosis {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .diagnosis-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .diagnosis-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .diagnosis-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+
+  .diagnosis-item.error {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--accent-red);
+  }
+
+  .diagnosis-item.warning {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: var(--accent-orange);
+  }
+
+  .diagnosis-item.success {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: var(--accent-green);
+  }
+
+  .diagnosis-item.info {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: var(--accent-blue);
+  }
+
+  .diag-icon { font-size: 14px; flex-shrink: 0; }
+
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-secondary);
+    padding: 3px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    width: fit-content;
+  }
+
+  .tab-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 16px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  }
+
+  .tab-btn:hover:not(.active) { color: var(--text-primary); }
+
+  /* Preset selector */
+  .preset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .preset-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  select {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+  }
+
+  select:focus { border-color: var(--accent-blue); }
+
+  /* Speed indicator */
+  .speed-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  .speed-indicator select {
+    min-width: 60px;
+  }
+
+  @media (max-width: 1200px) {
+    .metrics-bar { grid-template-columns: repeat(3, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-icon">ACC</div>
+      <div class="header-title">
+        <h1>PID Cruise Control — Simulation Lab</h1>
+        <span>v1.0 · Physics-based simulation environment</span>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="speed-indicator">
+        <span style="color: var(--text-muted);">Speed:</span>
+        <select id="simSpeed" onchange="setSimSpeed(this.value)">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="5">5×</option>
+          <option value="10">10×</option>
+        </select>
+      </div>
+      <div id="statusBadge" class="status-badge status-stopped">STOPPED</div>
+      <button class="btn" onclick="resetSim()">Reset</button>
+      <button id="runBtn" class="btn btn-primary" onclick="toggleSim()">▶ Run</button>
+      <button id="exportBtn" class="btn" onclick="exportCSV()" style="background:rgba(16,185,129,0.15);border-color:#10b981;color:#10b981;font-weight:600;">⬇ Export CSV</button>
+      <button class="btn" onclick="clearLog()" style="background:rgba(239,68,68,0.1);border-color:#ef4444;color:#ef4444;font-size:11px;">✕ Clear</button>
+      <span id="logInfo" style="font-size:11px;color:#64748b;margin-left:6px;align-self:center;">0 rows</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Scenario -->
+      <div class="section">
+        <div class="section-title">Test Scenario</div>
+        <div class="scenario-grid">
+          <button class="scenario-btn active" onclick="setScenario('approach')" id="sc-approach">
+            <span class="scenario-name">→ Approach & Follow</span>
+            <span class="scenario-desc">Lead car at 2m, your car approaches</span>
+          </button>
+          <button class="scenario-btn" onclick="setScenario('cutIn')" id="sc-cutIn">
+            <span class="scenario-name">⚡ Sudden Cut-in</span>
+            <span class="scenario-desc">Object appears at 0.4m suddenly</span>
+          </button>
+          <button class="scenario-btn" onclick="setScenario('stopAndGo')" id="sc-stopAndGo">
+            <span class="scenario-name">🔄 Stop & Go</span>
+            <span class="scenario-desc">Lead car stops then accelerates</span>
+          </button>
+          <button class="scenario-btn" onclick="setScenario('freeRoad')" id="sc-freeRoad">
+            <span class="scenario-name">🛣️ Free Road</span>
+            <span class="scenario-desc">No obstacle, cruise at set speed</span>
+          </button>
+          <button class="scenario-btn" onclick="setScenario('oscillation')" id="sc-oscillation">
+            <span class="scenario-name">📊 Your Telemetry</span>
+            <span class="scenario-desc">Replay ~0.3m oscillation bug scenario</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PID Params -->
+      <div class="section">
+        <div class="section-title">PID Parameters</div>
+        <div class="param-group">
+          <div class="param-row">
+            <span class="param-label">Kp</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_Kp" min="0" max="2000" step="10" value="800" oninput="updateParam('Kp', this.value)">
+              <span class="param-value" id="pv_Kp">800</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label">Ki</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_Ki" min="0" max="500" step="5" value="50" oninput="updateParam('Ki', this.value)">
+              <span class="param-value" id="pv_Ki">50</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label">Kd</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_Kd" min="0" max="50" step="0.5" value="3" oninput="updateParam('Kd', this.value)">
+              <span class="param-value" id="pv_Kd">3.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACC Params -->
+      <div class="section">
+        <div class="section-title">ACC Parameters</div>
+        <div class="param-group">
+          <div class="param-row">
+            <span class="param-label" title="Set velocity (m/s)">V_set</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_setV" min="0.1" max="1.0" step="0.05" value="0.50" oninput="updateParam('setV', this.value)">
+              <span class="param-value" id="pv_setV">0.50</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Headway time (s)">T_hw</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_headway" min="0.3" max="3.0" step="0.1" value="1.0" oninput="updateParam('headway', this.value)">
+              <span class="param-value" id="pv_headway">1.0</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Standstill distance (m)">D_ss</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_dss" min="0.05" max="0.5" step="0.01" value="0.15" oninput="updateParam('dss', this.value)">
+              <span class="param-value" id="pv_dss">0.15</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Max acceleration (m/s²)">A_max</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_maxAccel" min="0.5" max="5.0" step="0.1" value="2.0" oninput="updateParam('maxAccel', this.value)">
+              <span class="param-value" id="pv_maxAccel">2.0</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Max target V decrease per step (m/s)">ΔV_max</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_maxTvDec" min="0.01" max="0.2" step="0.005" value="0.03" oninput="updateParam('maxTvDec', this.value)">
+              <span class="param-value" id="pv_maxTvDec">0.030</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Motor Params -->
+      <div class="section">
+        <div class="section-title">Motor / Noise Model</div>
+        <div class="param-group">
+          <div class="param-row">
+            <span class="param-label" title="Start PWM (from rest)">PWM_s</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_startPWM" min="0" max="150" step="5" value="90" oninput="updateParam('startPWM', this.value)">
+              <span class="param-value" id="pv_startPWM">90</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Run PWM (min sustain)">PWM_r</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_runPWM" min="0" max="100" step="5" value="60" oninput="updateParam('runPWM', this.value)">
+              <span class="param-value" id="pv_runPWM">60</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Sensor noise σ (m)">σ_dist</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_sensorNoise" min="0" max="0.05" step="0.002" value="0.010" oninput="updateParam('sensorNoise', this.value)">
+              <span class="param-value" id="pv_sensorNoise">0.010</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Encoder noise (counts)">σ_enc</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_encoderNoise" min="0" max="5" step="0.5" value="1.0" oninput="updateParam('encoderNoise', this.value)">
+              <span class="param-value" id="pv_encoderNoise">1.0</span>
+            </div>
+          </div>
+          <div class="param-row">
+            <span class="param-label" title="Max integral accumulation">I_max</span>
+            <div class="param-slider-wrap">
+              <input type="range" id="sl_maxIntegral" min="0.1" max="5.0" step="0.1" value="2.0" oninput="updateParam('maxIntegral', this.value)">
+              <span class="param-value" id="pv_maxIntegral">2.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="section">
+        <div class="section-title">Quick Presets</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button class="btn" style="width: 100%; text-align: left; font-size: 11px;" onclick="loadPreset('current')">📋 Your Current Values (Kp=800)</button>
+          <button class="btn btn-success" style="width: 100%; text-align: left; font-size: 11px;" onclick="loadPreset('recommended')">✅ Recommended Fix (Kp=350)</button>
+          <button class="btn" style="width: 100%; text-align: left; font-size: 11px;" onclick="loadPreset('conservative')">🐢 Conservative (Kp=200)</button>
+          <button class="btn" style="width: 100%; text-align: left; font-size: 11px;" onclick="loadPreset('aggressive')">🏎️ Aggressive (Kp=1200)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Vehicle Visualization -->
+      <div class="vehicle-viz">
+        <div class="vehicle-viz-title">Live Vehicle View</div>
+        <div class="road"></div>
+        <div id="egoVehicle" class="vehicle vehicle-ego">EGO</div>
+        <div id="leadVehicle" class="vehicle vehicle-lead" style="left: 300px;">LEAD</div>
+        <div id="safeZone" class="safe-zone" style="display: none;">
+          <span class="safe-zone-label" id="safeZoneLabel">safe dist</span>
+        </div>
+        <div id="distanceLabel" class="distance-label">0.00 m</div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics-bar">
+        <div class="metric-card">
+          <div class="metric-label">Distance</div>
+          <div class="metric-value cyan" id="m_dist">0.00<span class="metric-unit">m</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Velocity</div>
+          <div class="metric-value blue" id="m_vel">0.00<span class="metric-unit">m/s</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Target V</div>
+          <div class="metric-value green" id="m_tgtV">0.00<span class="metric-unit">m/s</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">PWM Out</div>
+          <div class="metric-value orange" id="m_pwm">0<span class="metric-unit">/255</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">V Error</div>
+          <div class="metric-value purple" id="m_verr">0.00<span class="metric-unit">m/s</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Integral</div>
+          <div class="metric-value red" id="m_intg">0.00<span class="metric-unit">m/s·s</span></div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Distance vs Safe Distance</span>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-cyan)"></span>Measured</span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-orange)"></span>Safe Dist</span>
+              <span class="legend-item"><span class="legend-dot" style="background: rgba(239,68,68,0.5)"></span>Standstill</span>
+            </div>
+          </div>
+          <canvas id="chartDistance"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Velocity Tracking</span>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-blue)"></span>Measured</span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-green)"></span>Target</span>
+              <span class="legend-item"><span class="legend-dot" style="background: rgba(100,116,139,0.5)"></span>Set V</span>
+            </div>
+          </div>
+          <canvas id="chartVelocity"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">PWM Output</span>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-orange)"></span>PWM</span>
+            </div>
+          </div>
+          <canvas id="chartPWM"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">PID Components</span>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-blue)"></span>P</span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-green)"></span>I</span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--accent-red)"></span>D</span>
+            </div>
+          </div>
+          <canvas id="chartPID"></canvas>
+        </div>
+      </div>
+
+      <!-- Diagnosis -->
+      <div class="diagnosis">
+        <div class="diagnosis-title">⚡ Live Diagnosis</div>
+        <div class="diagnosis-items" id="diagnosisItems">
+          <div class="diagnosis-item info"><span class="diag-icon">ℹ️</span>Press ▶ Run to start simulation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== SIMULATION ENGINE ======================
+
+// --- Parameters (mirrors PID_fixed.py) ---
+const P = {
+  Kp: 800, Ki: 50, Kd: 3,
+  setV: 0.50,
+  headway: 1.0,
+  dss: 0.15,       // standstill distance
+  maxAccel: 2.0,
+  maxTvDec: 0.03,
+  startPWM: 90,
+  runPWM: 60,
+  maxIntegral: 2.0,
+  sensorNoise: 0.010,
+  encoderNoise: 1.0,
+  wmaAlphaV: 0.25,
+  wmaAlphaD: 0.15,
+  sampleInterval: 0.15,
+  countsPerRev: 348,
+  wheelCircum: Math.PI * 0.065,
+};
+
+// --- Motor physics model ---
+// Maps PWM (0-255) to steady-state velocity with friction & inertia
+const MOTOR = {
+  maxSpeed: 0.65,       // m/s at PWM=255
+  staticFriction: 0.08, // min velocity to start
+  timeConstant: 0.3,    // motor response time constant (s)
+  deadzone: 50,         // PWM below which motor doesn't move
+};
+
+// --- State ---
+let state = {};
+let running = false;
+let simTimer = null;
+let simSpeedMultiplier = 1;
+let stepCount = 0;
+const MAX_POINTS = 300;
+
+// --- History buffers ---
+let hist = {};
+let fullLog = [];   // Complete step log for CSV export
+
+function initState() {
+  const scenario = currentScenario;
+  state = {
+    // Physical positions (ego at origin, lead car ahead)
+    egoPos: 0,
+    egoVel: scenario.egoV0 || 0,
+    leadPos: scenario.leadDist0 || 2.0,
+    leadVel: scenario.leadV0 || 0,
+    // Sensor / filtered
+    rawDistance: 0,
+    filteredDistance: null,
+    filteredSafeDistance: null,
+    // PID state
+    measuredVelocity: 0,
+    prevError: 0,
+    integral: 0,
+    lastPwmOutput: 0,
+    lastTargetVelocity: P.setV,
+    // Output
+    targetVelocity: 0,
+    velocityError: 0,
+    pidOutput: 0,
+    pwmOutput: 0,
+    // PID components
+    pTerm: 0, iTerm: 0, dTerm: 0,
+    // Physics
+    trueVelocity: 0,
+    // Scenario time
+    simTime: 0,
+  };
+  stepCount = 0;
+  hist = {
+    time: [], distance: [], safeDist: [], standstill: [],
+    measuredV: [], targetV: [], setV: [],
+    pwm: [],
+    pTerm: [], iTerm: [], dTerm: [],
+  };
+  // Full log: every step, never trimmed — used for CSV export + ML training
+  fullLog = [];
+}
+
+// --- Scenarios ---
+const SCENARIOS = {
+  approach: {
+    name: 'Approach & Follow',
+    leadDist0: 2.0,
+    egoV0: 0,
+    leadV0: 0,
+    leadProfile: (t) => 0, // stationary lead car
+  },
+  cutIn: {
+    name: 'Sudden Cut-in',
+    leadDist0: 4.0,
+    egoV0: 0.4,
+    leadV0: 0,
+    leadProfile: (t) => {
+      if (t < 2) return 4.0; // far away initially
+      return 0.40; // suddenly appears at 0.4m
+    },
+    overrideDistance: true,
+  },
+  stopAndGo: {
+    name: 'Stop & Go',
+    leadDist0: 1.5,
+    egoV0: 0,
+    leadV0: 0.3,
+    leadProfile: (t) => {
+      if (t < 3) return 0.3;
+      if (t < 6) return 0;
+      if (t < 9) return 0.3;
+      if (t < 12) return 0;
+      return 0.4;
+    },
+  },
+  freeRoad: {
+    name: 'Free Road',
+    leadDist0: 4.0,
+    egoV0: 0,
+    leadV0: 0,
+    leadProfile: (t) => 0,
+  },
+  oscillation: {
+    name: 'Your Telemetry Bug',
+    leadDist0: 0.55,
+    egoV0: 0,
+    leadV0: 0,
+    leadProfile: (t) => 0, // stationary at ~0.55m (like your test)
+  },
+};
+
+let currentScenario = SCENARIOS.approach;
+
+function setScenario(key) {
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sc-' + key).classList.add('active');
+  currentScenario = SCENARIOS[key];
+  resetSim();
+}
+
+// --- WMA filter ---
+function wma(prev, sample, alpha) {
+  if (prev === 0 || prev === null) return sample;
+  return alpha * sample + (1 - alpha) * prev;
+}
+
+// --- Gaussian noise ---
+function gaussNoise(sigma) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+// --- Motor model: PWM → actual velocity change ---
+function motorModel(currentVel, pwm, dt) {
+  // Motor dead zone
+  if (pwm < MOTOR.deadzone) {
+    // Decelerate due to friction
+    return Math.max(0, currentVel - 0.8 * dt);
+  }
+  // Target speed from PWM (linear mapping above deadzone)
+  const effectivePwm = (pwm - MOTOR.deadzone) / (255 - MOTOR.deadzone);
+  const targetSpeed = effectivePwm * MOTOR.maxSpeed;
+  // First-order lag (motor inertia)
+  const alpha = 1 - Math.exp(-dt / MOTOR.timeConstant);
+  let newVel = currentVel + alpha * (targetSpeed - currentVel);
+  // Static friction: if trying to start from ~0, need minimum PWM
+  if (currentVel < 0.01 && pwm < P.startPWM) {
+    newVel = 0;
+  }
+  return Math.max(0, newVel);
+}
+
+// --- Encoder simulation ---
+function simulateEncoder(trueVelocity, dt) {
+  const trueCounts = (trueVelocity / P.wheelCircum) * P.countsPerRev * dt;
+  const noisyCounts = Math.max(0, Math.round(trueCounts + gaussNoise(P.encoderNoise)));
+  return noisyCounts;
+}
+
+// ====================== ONE SIMULATION STEP (mirrors PID_fixed.py exactly) ======================
+function simStep() {
+  const dt = P.sampleInterval;
+  const s = state;
+  s.simTime += dt;
+
+  // --- Lead car behavior ---
+  if (currentScenario.overrideDistance) {
+    s.leadPos = s.egoPos + currentScenario.leadProfile(s.simTime);
+  } else {
+    s.leadVel = currentScenario.leadProfile(s.simTime);
+    s.leadPos += s.leadVel * dt;
+  }
+
+  // --- True distance ---
+  const trueDistance = Math.max(0.02, s.leadPos - s.egoPos);
+
+  // --- Sensor reading with noise ---
+  let raw_d = trueDistance + gaussNoise(P.sensorNoise);
+  let sensor_valid = true;
+  if (raw_d <= 0.02 || raw_d >= 4.0 || isNaN(raw_d)) {
+    raw_d = 4.0;
+    sensor_valid = false;
+  }
+
+  if (s.filteredDistance === null) {
+    s.filteredDistance = raw_d;
+  } else {
+    if (sensor_valid && Math.abs(raw_d - s.filteredDistance) > 0.3) {
+      raw_d = s.filteredDistance; // spike rejection
+    }
+    s.filteredDistance = wma(s.filteredDistance, raw_d, P.wmaAlphaD);
+  }
+
+  // --- Encoder → velocity ---
+  const counts = simulateEncoder(s.trueVelocity, dt);
+  if (counts > 0) {
+    let raw_v = (counts / P.countsPerRev) * P.wheelCircum / dt;
+    if (raw_v > 2.0) raw_v = s.measuredVelocity;
+    s.measuredVelocity = wma(s.measuredVelocity, raw_v, P.wmaAlphaV);
+  } else {
+    s.measuredVelocity = s.measuredVelocity > 0.001 ? s.measuredVelocity * 0.95 : 0;
+  }
+
+  // --- Safe distance & target velocity ---
+  const rawSafeDistance = P.dss + P.headway * s.measuredVelocity;
+  if (s.filteredSafeDistance === null) {
+    s.filteredSafeDistance = rawSafeDistance;
+  } else {
+    s.filteredSafeDistance = wma(s.filteredSafeDistance, rawSafeDistance, 0.25);
+  }
+  const safeDistance = s.filteredSafeDistance;
+  const distanceError = s.filteredDistance - safeDistance;
+
+  // Unified sqrt formula
+  const v_sq = s.measuredVelocity ** 2 + 2 * P.maxAccel * distanceError;
+  let targetVelocity = Math.sqrt(Math.max(v_sq, 0));
+  targetVelocity = Math.min(targetVelocity, P.setV);
+
+  if (s.filteredDistance <= P.dss) {
+    targetVelocity = 0;
+    s.integral = 0;
+  }
+
+  if (s.filteredDistance < P.dss * 0.8) {
+    targetVelocity = 0;
+    s.integral = 0;
+    s.prevError = 0;
+  }
+
+  // Rate-limit target velocity decrease
+  if (targetVelocity < s.lastTargetVelocity) {
+    const diff = s.lastTargetVelocity - targetVelocity;
+    if (diff > P.maxTvDec) {
+      targetVelocity = s.lastTargetVelocity - P.maxTvDec;
+    }
+  }
+  s.lastTargetVelocity = targetVelocity;
+  s.targetVelocity = targetVelocity;
+
+  // --- PID Controller ---
+  const velocityError = targetVelocity - s.measuredVelocity;
+  s.velocityError = velocityError;
+  let pwmOutput = s.lastPwmOutput;
+  let pidOutput = 0;
+
+  // Anti-windup: stall detection
+  if (s.measuredVelocity < 0.01 && s.lastPwmOutput >= 200 && targetVelocity > 0) {
+    s.integral = 0;
+  }
+
+  const derivative = (velocityError - s.prevError) / dt;
+  s.prevError = velocityError;
+
+  s.pTerm = P.Kp * velocityError;
+  s.iTerm = P.Ki * s.integral;
+  s.dTerm = P.Kd * derivative;
+  pidOutput = s.pTerm + s.iTerm + s.dTerm;
+  s.pidOutput = pidOutput;
+
+  pwmOutput = Math.min(Math.max(Math.round(pidOutput), 0), 255);
+
+  // Anti-windup: conditional integration
+  const notSaturated = (pwmOutput < 255 || velocityError < 0) &&
+                       (pwmOutput > 0 || velocityError > 0);
+  if (notSaturated) {
+    s.integral += velocityError * dt;
+    s.integral = Math.max(-P.maxIntegral, Math.min(s.integral, P.maxIntegral));
+  }
+
+  // PWM floor
+  const floor = s.measuredVelocity < 0.01 ? P.startPWM : P.runPWM;
+  if (pwmOutput > 0 && pwmOutput < floor) {
+    pwmOutput = floor;
+  }
+
+  s.lastPwmOutput = pwmOutput;
+  s.pwmOutput = pwmOutput;
+
+  // Safety override
+  if (s.filteredDistance <= P.dss) {
+    pwmOutput = 0;
+    s.pwmOutput = 0;
+  }
+
+  // --- Motor physics ---
+  s.trueVelocity = motorModel(s.trueVelocity, pwmOutput, dt);
+  s.egoPos += s.trueVelocity * dt;
+
+  // --- Store history ---
+  const t = s.simTime;
+  hist.time.push(t);
+  hist.distance.push(s.filteredDistance);
+  hist.safeDist.push(safeDistance);
+  hist.standstill.push(P.dss);
+  hist.measuredV.push(s.measuredVelocity);
+  hist.targetV.push(targetVelocity);
+  hist.setV.push(P.setV);
+  hist.pwm.push(s.pwmOutput);
+  hist.pTerm.push(s.pTerm);
+  hist.iTerm.push(s.iTerm);
+  hist.dTerm.push(s.dTerm);
+
+  // Full ML log row — all features needed for imitation learning
+  const df_now = (s.filteredDistance ?? 0) - safeDistance;
+  fullLog.push([
+    +t.toFixed(4),                                    // t
+    +(s.filteredDistance ?? 0).toFixed(5),            // dist
+    +safeDistance.toFixed(5),                         // safe_dist
+    +df_now.toFixed(5),                               // df  (dist - safe)
+    +(s.measuredVelocity).toFixed(5),                 // ego_v
+    +(s.leadVel ?? 0).toFixed(5),                     // lead_v
+    +(s.velocityError ?? 0).toFixed(5),               // v_error
+    +(s.integral).toFixed(5),                         // integral
+    +(s.pTerm).toFixed(4),                            // p_term
+    +(s.iTerm).toFixed(4),                            // i_term
+    +(s.dTerm).toFixed(4),                            // d_term
+    +P.Kp.toFixed(2),                                 // kp
+    +P.Ki.toFixed(2),                                 // ki
+    +P.Kd.toFixed(2),                                 // kd
+    +(targetVelocity).toFixed(5),                     // target_v  [OUTPUT]
+    +(s.pwmOutput).toFixed(1),                        // pwm       [OUTPUT]
+    currentScenario?.name ?? 'unknown',               // scenario
+    +P.setV.toFixed(3),                               // set_v
+    +(s.trueVelocity).toFixed(5),                     // true_v
+    +(s.rawDistance ?? 0).toFixed(5),                 // raw_dist
+    +(s.egoPos ?? 0).toFixed(5),                      // ego_pos
+    +(s.leadPos ?? 0).toFixed(5),                     // lead_pos
+  ]);
+
+  // Update live log counter
+  updateLogInfo();
+
+  // Trim history
+  if (hist.time.length > MAX_POINTS) {
+    Object.keys(hist).forEach(k => hist[k].shift());
+  }
+
+  stepCount++;
+}
+
+// ====================== UI / CHARTS ======================
+
+// Lightweight chart renderer
+class MiniChart {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.series = [];
+  }
+
+  setSeries(series) {
+    this.series = series; // [{data: [], color, dashed?, filled?}]
+  }
+
+  render(xData) {
+    const c = this.ctx;
+    const rect = this.canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+    c.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    const pad = { top: 8, right: 8, bottom: 24, left: 48 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    c.clearRect(0, 0, W, H);
+
+    if (!xData || xData.length < 2) {
+      c.fillStyle = '#64748b';
+      c.font = '11px JetBrains Mono';
+      c.textAlign = 'center';
+      c.fillText('Waiting for data...', W/2, H/2);
+      return;
+    }
+
+    // Y range
+    let yMin = Infinity, yMax = -Infinity;
+    for (const s of this.series) {
+      for (const v of s.data) {
+        if (v < yMin) yMin = v;
+        if (v > yMax) yMax = v;
+      }
+    }
+    if (yMin === yMax) { yMin -= 0.1; yMax += 0.1; }
+    const yPad = (yMax - yMin) * 0.1;
+    yMin -= yPad;
+    yMax += yPad;
+
+    const xMin = xData[0], xMax = xData[xData.length - 1];
+    const toX = (v) => pad.left + ((v - xMin) / (xMax - xMin || 1)) * plotW;
+    const toY = (v) => pad.top + (1 - (v - yMin) / (yMax - yMin || 1)) * plotH;
+
+    // Grid
+    c.strokeStyle = 'rgba(42, 54, 80, 0.5)';
+    c.lineWidth = 0.5;
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+      const yv = yMin + (yMax - yMin) * i / yTicks;
+      const y = toY(yv);
+      c.beginPath();
+      c.moveTo(pad.left, y);
+      c.lineTo(W - pad.right, y);
+      c.stroke();
+      c.fillStyle = '#64748b';
+      c.font = '10px JetBrains Mono';
+      c.textAlign = 'right';
+      c.fillText(yv.toFixed(2), pad.left - 6, y + 3);
+    }
+
+    // X-axis labels
+    c.fillStyle = '#64748b';
+    c.textAlign = 'center';
+    const xTicks = 5;
+    for (let i = 0; i <= xTicks; i++) {
+      const xv = xMin + (xMax - xMin) * i / xTicks;
+      c.fillText(xv.toFixed(1) + 's', toX(xv), H - 4);
+    }
+
+    // Series
+    for (const s of this.series) {
+      c.strokeStyle = s.color;
+      c.lineWidth = s.lineWidth || 1.5;
+      if (s.dashed) c.setLineDash([4, 4]);
+      else c.setLineDash([]);
+
+      c.beginPath();
+      for (let i = 0; i < s.data.length; i++) {
+        const x = toX(xData[i]);
+        const y = toY(s.data[i]);
+        if (i === 0) c.moveTo(x, y);
+        else c.lineTo(x, y);
+      }
+      c.stroke();
+
+      if (s.filled) {
+        c.lineTo(toX(xData[xData.length - 1]), toY(0));
+        c.lineTo(toX(xData[0]), toY(0));
+        c.closePath();
+        c.fillStyle = s.color.replace(')', ', 0.05)').replace('rgb', 'rgba');
+        c.fill();
+      }
+    }
+    c.setLineDash([]);
+  }
+}
+
+const chartDist = new MiniChart('chartDistance');
+const chartVel = new MiniChart('chartVelocity');
+const chartPWM = new MiniChart('chartPWM');
+const chartPID = new MiniChart('chartPID');
+
+function updateCharts() {
+  chartDist.setSeries([
+    { data: hist.distance, color: '#06b6d4', lineWidth: 2 },
+    { data: hist.safeDist, color: '#f59e0b', dashed: true },
+    { data: hist.standstill, color: 'rgba(239,68,68,0.5)', dashed: true },
+  ]);
+  chartDist.render(hist.time);
+
+  chartVel.setSeries([
+    { data: hist.measuredV, color: '#3b82f6', lineWidth: 2 },
+    { data: hist.targetV, color: '#10b981' },
+    { data: hist.setV, color: 'rgba(100,116,139,0.5)', dashed: true },
+  ]);
+  chartVel.render(hist.time);
+
+  chartPWM.setSeries([
+    { data: hist.pwm, color: '#f59e0b', lineWidth: 2, filled: true },
+  ]);
+  chartPWM.render(hist.time);
+
+  chartPID.setSeries([
+    { data: hist.pTerm, color: '#3b82f6' },
+    { data: hist.iTerm, color: '#10b981' },
+    { data: hist.dTerm, color: '#ef4444' },
+  ]);
+  chartPID.render(hist.time);
+}
+
+function updateMetrics() {
+  const s = state;
+  document.getElementById('m_dist').innerHTML = s.filteredDistance !== null ? s.filteredDistance.toFixed(3) + '<span class="metric-unit">m</span>' : '—';
+  document.getElementById('m_vel').innerHTML = s.measuredVelocity.toFixed(3) + '<span class="metric-unit">m/s</span>';
+  document.getElementById('m_tgtV').innerHTML = s.targetVelocity.toFixed(3) + '<span class="metric-unit">m/s</span>';
+  document.getElementById('m_pwm').innerHTML = s.pwmOutput + '<span class="metric-unit">/255</span>';
+  document.getElementById('m_verr').innerHTML = s.velocityError.toFixed(3) + '<span class="metric-unit">m/s</span>';
+  document.getElementById('m_intg').innerHTML = s.integral.toFixed(3) + '<span class="metric-unit">m/s·s</span>';
+}
+
+function updateVehicleViz() {
+  const s = state;
+  const dist = s.filteredDistance || 0;
+  const vizWidth = document.querySelector('.vehicle-viz').offsetWidth - 100;
+  const scale = Math.min(vizWidth / 2.5, 250); // pixels per meter
+
+  const egoLeft = 80;
+  const leadLeft = egoLeft + dist * scale;
+  const safeDist = s.filteredSafeDistance || P.dss;
+  const safeLeft = egoLeft + 50;
+  const safeWidth = safeDist * scale;
+
+  document.getElementById('egoVehicle').style.left = egoLeft + 'px';
+  document.getElementById('leadVehicle').style.left = Math.min(leadLeft, vizWidth + 60) + 'px';
+
+  const sz = document.getElementById('safeZone');
+  sz.style.display = 'block';
+  sz.style.left = (egoLeft + 50) + 'px';
+  sz.style.width = Math.max(10, safeWidth) + 'px';
+  document.getElementById('safeZoneLabel').textContent = 'safe: ' + safeDist.toFixed(2) + 'm';
+
+  const dl = document.getElementById('distanceLabel');
+  dl.style.left = (egoLeft + 25 + leadLeft) / 2 + 'px';
+  dl.textContent = dist.toFixed(3) + ' m';
+
+  // Color code distance label
+  if (dist < P.dss) {
+    dl.style.color = '#ef4444';
+  } else if (dist < safeDist) {
+    dl.style.color = '#f59e0b';
+  } else {
+    dl.style.color = '#e2e8f0';
+  }
+}
+
+// ====================== DIAGNOSIS ENGINE ======================
+function runDiagnosis() {
+  const items = [];
+  const s = state;
+  if (stepCount < 10) return;
+
+  // Check for oscillation
+  if (hist.pwm.length > 20) {
+    const recent = hist.pwm.slice(-20);
+    let flips = 0;
+    for (let i = 1; i < recent.length; i++) {
+      if ((recent[i] === 0 && recent[i-1] > 100) || (recent[i] > 100 && recent[i-1] === 0)) flips++;
+    }
+    if (flips > 6) {
+      items.push({ type: 'error', icon: '🔴', text: `PWM oscillating (${flips} flips in 20 steps)! Kp=${P.Kp} is too high — P-term alone produces 0→255 jumps. Try Kp ≤ 400.` });
+    }
+  }
+
+  // Check PWM saturation
+  if (hist.pwm.length > 10) {
+    const recent = hist.pwm.slice(-10);
+    const satCount = recent.filter(v => v >= 255).length;
+    if (satCount > 5) {
+      items.push({ type: 'warning', icon: '⚠️', text: `PWM saturated at 255 for ${satCount}/10 steps. PID output (${s.pidOutput.toFixed(0)}) far exceeds 255 — reduce Kp.` });
+    }
+  }
+
+  // Check integral windup
+  if (Math.abs(s.integral) > P.maxIntegral * 0.9) {
+    items.push({ type: 'warning', icon: '⚠️', text: `Integral near max (${s.integral.toFixed(2)}/${P.maxIntegral}). Consider lowering Ki or maxIntegral.` });
+  }
+
+  // Check if velocity tracks target
+  if (stepCount > 30 && hist.measuredV.length > 20) {
+    const recentErr = hist.measuredV.slice(-20).map((v, i) =>
+      Math.abs(v - hist.targetV[hist.targetV.length - 20 + i])
+    );
+    const avgErr = recentErr.reduce((a, b) => a + b, 0) / recentErr.length;
+    if (avgErr < 0.03 && s.targetVelocity > 0.1) {
+      items.push({ type: 'success', icon: '✅', text: `Velocity tracking well! Avg error: ${(avgErr * 1000).toFixed(1)} mm/s` });
+    } else if (avgErr > 0.1) {
+      items.push({ type: 'warning', icon: '⚠️', text: `Poor velocity tracking. Avg error: ${(avgErr * 1000).toFixed(1)} mm/s. Check PID gains.` });
+    }
+  }
+
+  // P-term dominance check
+  if (Math.abs(s.pTerm) > 200 && s.measuredVelocity > 0.1) {
+    items.push({ type: 'warning', icon: '⚠️', text: `P-term (${s.pTerm.toFixed(0)}) dominates — causes abrupt PWM changes. For v_err=${s.velocityError.toFixed(3)}, Kp*v_err = ${(P.Kp * s.velocityError).toFixed(0)}` });
+  }
+
+  // Safe distance check
+  if (s.filteredDistance !== null && s.filteredDistance < P.dss) {
+    items.push({ type: 'error', icon: '🛑', text: 'Inside standstill zone — motors stopped.' });
+  }
+
+  // Velocity settled
+  if (stepCount > 50 && Math.abs(s.measuredVelocity - P.setV) < 0.02 && s.filteredDistance > s.filteredSafeDistance) {
+    items.push({ type: 'success', icon: '🚀', text: `Cruising at set velocity (${s.measuredVelocity.toFixed(3)} m/s ≈ ${P.setV} m/s target)` });
+  }
+
+  // D-term spike
+  if (Math.abs(s.dTerm) > 50) {
+    items.push({ type: 'info', icon: '📊', text: `D-term spike: ${s.dTerm.toFixed(1)}. High derivative from velocity error change — this is normal during transients.` });
+  }
+
+  if (items.length === 0) {
+    items.push({ type: 'info', icon: 'ℹ️', text: 'System nominal. Monitoring...' });
+  }
+
+  const container = document.getElementById('diagnosisItems');
+  container.innerHTML = items.map(item =>
+    `<div class="diagnosis-item ${item.type}"><span class="diag-icon">${item.icon}</span>${item.text}</div>`
+  ).join('');
+}
+
+// ====================== CONTROLS ======================
+function updateParam(key, val) {
+  const v = parseFloat(val);
+  P[key] = v;
+  const display = ['setV', 'headway', 'maxAccel'].includes(key) ? v.toFixed(2) :
+                  ['dss', 'maxTvDec', 'sensorNoise'].includes(key) ? v.toFixed(3) :
+                  ['Kd', 'encoderNoise', 'maxIntegral'].includes(key) ? v.toFixed(1) :
+                  String(Math.round(v));
+  document.getElementById('pv_' + key).textContent = display;
+}
+
+function setSlider(key, val) {
+  document.getElementById('sl_' + key).value = val;
+  updateParam(key, val);
+}
+
+function loadPreset(name) {
+  const presets = {
+    current:       { Kp: 800, Ki: 50, Kd: 3, setV: 0.50, headway: 1.0, dss: 0.15, maxAccel: 2.0, maxTvDec: 0.03, startPWM: 90, runPWM: 60, maxIntegral: 2.0 },
+    recommended:   { Kp: 350, Ki: 80, Kd: 8, setV: 0.50, headway: 1.0, dss: 0.15, maxAccel: 1.5, maxTvDec: 0.05, startPWM: 90, runPWM: 55, maxIntegral: 1.5 },
+    conservative:  { Kp: 200, Ki: 60, Kd: 10, setV: 0.40, headway: 1.2, dss: 0.15, maxAccel: 1.0, maxTvDec: 0.04, startPWM: 95, runPWM: 60, maxIntegral: 1.5 },
+    aggressive:    { Kp: 1200, Ki: 30, Kd: 2, setV: 0.50, headway: 0.8, dss: 0.12, maxAccel: 3.0, maxTvDec: 0.02, startPWM: 80, runPWM: 50, maxIntegral: 2.5 },
+  };
+  const p = presets[name];
+  if (!p) return;
+  Object.keys(p).forEach(k => setSlider(k, p[k]));
+  resetSim();
+}
+
+function setSimSpeed(val) {
+  simSpeedMultiplier = parseFloat(val);
+  if (running) {
+    clearInterval(simTimer);
+    startSimLoop();
+  }
+}
+
+function toggleSim() {
+  if (running) {
+    stopSim();
+  } else {
+    startSim();
+  }
+}
+
+function startSim() {
+  if (stepCount === 0) initState();
+  running = true;
+  document.getElementById('runBtn').textContent = '⏸ Pause';
+  document.getElementById('runBtn').classList.remove('btn-primary');
+  document.getElementById('runBtn').classList.add('btn-danger');
+  document.getElementById('statusBadge').className = 'status-badge status-running';
+  document.getElementById('statusBadge').textContent = 'RUNNING';
+  startSimLoop();
+}
+
+function stopSim() {
+  running = false;
+  clearInterval(simTimer);
+  document.getElementById('runBtn').textContent = '▶ Run';
+  document.getElementById('runBtn').classList.remove('btn-danger');
+  document.getElementById('runBtn').classList.add('btn-primary');
+  document.getElementById('statusBadge').className = 'status-badge status-stopped';
+  document.getElementById('statusBadge').textContent = 'PAUSED';
+}
+
+function startSimLoop() {
+  const intervalMs = Math.max(10, (P.sampleInterval * 1000) / simSpeedMultiplier);
+  simTimer = setInterval(() => {
+    simStep();
+    updateMetrics();
+    updateVehicleViz();
+    if (stepCount % 2 === 0) updateCharts();
+    if (stepCount % 5 === 0) runDiagnosis();
+  }, intervalMs);
+}
+
+function resetSim() {
+  const wasRunning = running;
+  if (running) stopSim();
+  initState();
+  updateMetrics();
+  updateCharts();
+  updateVehicleViz();
+  document.getElementById('diagnosisItems').innerHTML =
+    '<div class="diagnosis-item info"><span class="diag-icon">ℹ️</span>Simulation reset. Press ▶ Run to start.</div>';
+  document.getElementById('statusBadge').className = 'status-badge status-stopped';
+  document.getElementById('statusBadge').textContent = 'STOPPED';
+}
+
+// --- Init ---
+initState();
+updateCharts();
+updateVehicleViz();
+
+// Handle resize
+window.addEventListener('resize', () => {
+  if (hist.time.length > 0) updateCharts();
+});
+
+// ══════════════════════════════════════════════════════════
+// CSV EXPORT — ML Training Data
+// ══════════════════════════════════════════════════════════
+const CSV_HEADERS = [
+  't','dist','safe_dist','df','ego_v','lead_v','v_error',
+  'integral','p_term','i_term','d_term','kp','ki','kd',
+  'target_v','pwm','scenario','set_v','true_v','raw_dist',
+  'ego_pos','lead_pos'
+];
+
+function exportCSV() {
+  if (!fullLog || fullLog.length === 0) {
+    alert('No data to export. Run the simulation first.');
+    return;
+  }
+
+  // Build CSV string
+  const lines = [CSV_HEADERS.join(',')];
+  for (const row of fullLog) {
+    lines.push(row.map(v => (typeof v === 'number' ? v : `"${v}"`)).join(','));
+  }
+  const csv = lines.join('\n');
+
+  // Filename: scenario_kp_ki_kd_timestamp.csv
+  const scen = (currentScenario?.name ?? 'sim').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  const fname = `pid_acc_${scen}_kp${P.Kp}_ki${P.Ki}_kd${P.Kd}_${ts}.csv`;
+
+  // Trigger browser download
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = fname; a.click();
+  URL.revokeObjectURL(url);
+
+  // Update button
+  const btn = document.getElementById('exportBtn');
+  const orig = btn.textContent;
+  btn.textContent = `✓ Saved ${fullLog.length} rows`;
+  btn.style.background = '#10b981';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 3000);
+
+  console.log(`[CSV] Exported ${fullLog.length} rows → ${fname}`);
+}
+
+function clearLog() {
+  fullLog = [];
+  const btn = document.getElementById('exportBtn');
+  if (btn) { btn.textContent = '⬇ Export CSV'; btn.style.background = ''; }
+  document.getElementById('logInfo').textContent = '0 rows';
+}
+
+// Live log counter update (called each step)
+function updateLogInfo() {
+  const el = document.getElementById('logInfo');
+  if (el) el.textContent = `${fullLog.length} rows`;
+}
+
+</script>
+</body>
+</html>
