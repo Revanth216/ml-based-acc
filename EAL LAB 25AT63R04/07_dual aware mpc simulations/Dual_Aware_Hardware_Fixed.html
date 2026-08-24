@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dual-Aware Cascaded MPC — Hardware Robot Config (Continuous Integration)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{--bg:#070b12;--panel:#0d1220;--card:#111827;--border:#1e2d45;--cyan:#00d4ff;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#a78bfa;--pink:#ec4899;--orange:#fb923c;--text:#e2e8f0;--muted:#4b6080;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Syne',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--panel);border-bottom:1px solid var(--border)}
+.logo{font-family:var(--display);font-size:15px;font-weight:800;letter-spacing:.5px;color:var(--cyan)}.logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:8px;font-family:var(--mono)}
+.hdr-right{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.8s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.layout{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 49px)}
+.sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-top{flex-shrink:0;border-bottom:2px solid var(--cyan);padding:10px 14px;background:var(--panel)}
+.sidebar-scroll{flex:1;overflow-y:auto}.sidebar-scroll::-webkit-scrollbar{width:3px}.sidebar-scroll::-webkit-scrollbar-thumb{background:var(--border)}
+.sec{border-bottom:1px solid var(--border);padding:13px 15px}
+.sec-title{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:11px}
+.param{margin-bottom:9px}.param-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.param-name{font-family:var(--mono);font-size:10px;color:var(--text)}.param-val{font-family:var(--mono);font-size:11px;color:var(--cyan);min-width:44px;text-align:right}
+input[type=range]{width:100%;-webkit-appearance:none;height:2px;background:var(--border);border-radius:1px;cursor:pointer;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);cursor:pointer}
+.sc-grid{display:flex;flex-direction:column;gap:5px}
+.sc-btn{padding:7px 4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;cursor:pointer;border-radius:2px;text-align:center;line-height:1.4;transition:all .15s}
+.sc-btn:hover,.sc-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.06);box-shadow:inset 0 0 12px rgba(0,212,255,.05)}
+.btn{padding:9px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:2px;letter-spacing:1px;transition:all .15s}
+.btn-run{border-color:var(--green);color:var(--green)}.btn-run:hover{background:rgba(16,185,129,.08)}.btn-run.active{background:rgba(16,185,129,.12)}
+.btn-rst{border-color:var(--muted);color:var(--muted)}.btn-rst:hover{border-color:var(--text);color:var(--text)}
+.main{display:grid;grid-template-rows:140px 56px 1fr;overflow:hidden}
+.scene-wrap{background:#050810;border-bottom:1px solid var(--border);padding:10px 18px 8px;position:relative}
+.scene-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+#sceneCanvas{width:100%;height:90px;display:block}
+.metrics{display:grid;grid-template-columns:repeat(8,1fr);border-bottom:1px solid var(--border);background:var(--panel)}
+.metric{padding:8px 10px;text-align:center;border-right:1px solid var(--border)}.metric:last-child{border-right:none}
+.m-val{font-family:var(--mono);font-size:14px;color:var(--cyan);line-height:1;margin-bottom:2px}
+.m-val.ok{color:var(--green)}.m-val.warn{color:var(--amber)}.m-val.bad{color:var(--red)}
+.m-lbl{font-family:var(--mono);font-size:7.5px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.charts{display:flex;flex-direction:column;gap:0;overflow:hidden}
+.chart-block{flex:1;min-height:0;background:#050810;border-bottom:1px solid var(--border);padding:8px 14px 4px;position:relative}.chart-block:last-child{border-bottom:none}
+.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.chart-title{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.legend{display:flex;gap:10px}.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--muted)}
+.leg-line{width:14px;height:2px;border-radius:1px}
+canvas.chart{width:100%;display:block}
+#alertBox{position:fixed;bottom:18px;right:18px;z-index:100;display:flex;flex-direction:column;gap:6px}
+.alert{padding:8px 14px;font-family:var(--mono);font-size:10px;border-left:3px solid var(--red);background:rgba(239,68,68,.12);color:var(--red);border-radius:2px;animation:slideIn .2s ease}
+.alert.info{border-color:var(--cyan);background:rgba(0,212,255,.08);color:var(--cyan)}
+@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
+.perf-box{margin-top:8px;padding:8px 10px;background:rgba(0,212,255,.04);border:1px solid var(--border);border-radius:2px;font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.6}
+.perf-box .pv{color:var(--cyan)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DUAL-AWARE CASCADED MPC <span>/ 7-SCENARIO VALIDATION BED</span></div>
+  <div class="hdr-right">
+    <div class="live-dot" id="liveDot"></div>
+    <span id="statusTxt">READY</span>
+    <span style="color:var(--border)">|</span>
+    <span id="simClock">t = 0.00s</span>
+  </div>
+</header>
+<div class="layout">
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;">Controls</span>
+    </div>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-run" id="runBtn" onclick="toggleRun()" style="flex:2;padding:11px;font-size:12px;letter-spacing:2px;">▶ RUN</button>
+      <button class="btn btn-rst" onclick="resetSim()" style="flex:1;padding:11px;">↺ RESET</button>
+    </div>
+  </div>
+  <div style="padding:8px 14px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
+    <button onclick="exportCSV(false)" class="btn" style="flex:1;padding:7px;font-size:9px;border-color:var(--green);color:var(--green);">⬇ CSV 1s</button>
+    <button onclick="exportCSV(true)" class="btn" style="flex:1;padding:7px;font-size:9px;border-color:var(--purple);color:var(--purple);">⬇ CSV Full</button>
+  </div>
+  <div class="sidebar-scroll">
+  <div class="sec">
+    <div class="sec-title">Scenarios — Journal + Extended</div>
+    <div class="sc-grid">
+      <button class="sc-btn active" id="sc-sc1" onclick="setScenario('sc1')">Sc1 ★ Journal<br>Front brakes t=5→9s</button>
+      <button class="sc-btn" id="sc-sc2" onclick="setScenario('sc2')">Sc2 ★ Journal<br>Rear 28→20 m/s</button>
+      <button class="sc-btn" id="sc-sc3" onclick="setScenario('sc3')">Sc3 Squeeze<br>Both gaps stressed</button>
+      <button class="sc-btn" id="sc-sc4" onclick="setScenario('sc4')">Sc4 Cut-In<br>Sudden front gap</button>
+      <button class="sc-btn" id="sc-sc5" onclick="setScenario('sc5')">Sc5 Rear Emergency<br>Fast rear approach</button>
+      <button class="sc-btn" id="sc-sc6" onclick="setScenario('sc6')">Sc6 Stop &amp; Go<br>Front stops/restarts</button>
+      <button class="sc-btn" id="sc-sc7" onclick="setScenario('sc7')">Sc7 Cruise<br>Steady-state dual</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">ACC Parameters</div>
+    <div class="param"><div class="param-row"><span class="param-name">v_set (m/s)</span><span class="param-val" id="v-vset">0.38</span></div><input type="range" id="vset" min="0.10" max="1.50" step="0.01" value="0.38" oninput="setP('vset',this.value,2)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">headwayTime (s)</span><span class="param-val" id="v-HWT">0.70</span></div><input type="range" id="HWT" min="0.1" max="2.0" step="0.1" value="0.70" oninput="setP('HWT',this.value,2)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">standstill dist (m)</span><span class="param-val" id="v-dss">0.25</span></div><input type="range" id="dss" min="0.05" max="1.0" step="0.05" value="0.25" oninput="setP('dss',this.value,2)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">amax (motor)</span><span class="param-val" id="v-amax">0.40</span></div><input type="range" id="amax" min="0.10" max="1.00" step="0.05" value="0.40" oninput="setP('amax',this.value,2)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">amin (friction)</span><span class="param-val" id="v-amin">-0.60</span></div><input type="range" id="amin" min="-1.50" max="-0.10" step="0.05" value="-0.60" oninput="setP('amin',this.value,2)"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Vehicle & Noise</div>
+    <div class="param"><div class="param-row"><span class="param-name">mass (kg)</span><span class="param-val" id="v-mass">0.60</span></div><input type="range" id="mass" min="0.10" max="5.00" step="0.10" value="0.60" oninput="setP('mass',this.value,2)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Cr (rolling resist)</span><span class="param-val" id="v-Cr">0.035</span></div><input type="range" id="Cr" min="0.005" max="0.100" step="0.005" value="0.035" oninput="setP('Cr',this.value,3)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Sensor noise (m)</span><span class="param-val" id="v-snsNoise">0.000</span></div><input type="range" id="snsNoise" min="0.000" max="0.100" step="0.005" value="0.000" oninput="setP('snsNoise',this.value,3)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Encoder noise (m/s)</span><span class="param-val" id="v-encNoise">0.00</span></div><input type="range" id="encNoise" min="0.00" max="0.50" step="0.05" value="0.00" oninput="setP('encNoise',this.value,2)"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">MPC1: High-Level (Eq.42-58)</div>
+    <div class="param"><div class="param-row"><span class="param-name">Np1</span><span class="param-val" id="v-Np1">10</span></div><input type="range" id="Np1" min="4" max="20" step="1" value="10" oninput="setP('Np1',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Nc1</span><span class="param-val" id="v-Nc1">3</span></div><input type="range" id="Nc1" min="1" max="6" step="1" value="3" oninput="setP('Nc1',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Ts1 (s)</span><span class="param-val" id="v-Ts1">0.50</span></div><input type="range" id="Ts1" min="0.1" max="2.0" step="0.10" value="0.50" oninput="setP('Ts1',this.value,2)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Q1_front</span><span class="param-val" id="v-Q1f">1000</span></div><input type="range" id="Q1f" min="10" max="2000" step="10" value="1000" oninput="setP('Q1f',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Q1_rear</span><span class="param-val" id="v-Q1r">800</span></div><input type="range" id="Q1r" min="5" max="1500" step="5" value="800" oninput="setP('Q1r',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">R1</span><span class="param-val" id="v-R1">100</span></div><input type="range" id="R1" min="1" max="5000" step="10" value="100" oninput="setP('R1',this.value,0)"></div>
+  </div>
+  
+  <div class="sec">
+    <div class="sec-title">MPC2: Low-Level (Eq.59-67)</div>
+    <div class="param"><div class="param-row"><span class="param-name">Np2</span><span class="param-val" id="v-Np2">10</span></div><input type="range" id="Np2" min="4" max="20" step="1" value="10" oninput="setP('Np2',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Nc2</span><span class="param-val" id="v-Nc2">2</span></div><input type="range" id="Nc2" min="1" max="6" step="1" value="2" oninput="setP('Nc2',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Q2</span><span class="param-val" id="v-Q2">1000</span></div><input type="range" id="Q2" min="50" max="2000" step="50" value="1000" oninput="setP('Q2',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">R2</span><span class="param-val" id="v-R2">1000</span></div><input type="range" id="R2" min="1" max="5000" step="10" value="1000" oninput="setP('R2',this.value,0)"></div>
+    <div class="param"><div class="param-row"><span class="param-name">Ts (HC-SR04 rate)</span><span class="param-val" id="v-Ts">0.20</span></div><input type="range" id="Ts" min="0.05" max="0.50" step="0.05" value="0.20" oninput="setP('Ts',this.value,2)"></div>
+  </div>
+  
+  <div class="sec">
+    <div class="sec-title">Simulation</div>
+    <div class="param"><div class="param-row"><span class="param-name">Speed (×)</span><span class="param-val" id="v-spd">4</span></div><input type="range" id="spd" min="1" max="20" step="1" value="4" oninput="setP('spd',this.value,0)"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Metrics</div>
+    <div class="perf-box" id="perfBox">Run simulation to compute...</div>
+  </div>
+  </div>
+</div>
+<div class="main">
+  <div class="scene-wrap">
+    <div class="scene-label" id="sceneLabel">Sc1 — Journal Fig.15: Front brakes at t=5s | Rear constant</div>
+    <canvas id="sceneCanvas"></canvas>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="m-val" id="m-v">0.0</div><div class="m-lbl">V_ego</div></div>
+    <div class="metric"><div class="m-val" id="m-vref">0.0</div><div class="m-lbl">V_ref</div></div>
+    <div class="metric"><div class="m-val" id="m-df">—</div><div class="m-lbl">d_rel,f</div></div>
+    <div class="metric"><div class="m-val" id="m-dsf">—</div><div class="m-lbl">d_safe,f</div></div>
+    <div class="metric"><div class="m-val" id="m-dr">—</div><div class="m-lbl">d_rel,r</div></div>
+    <div class="metric"><div class="m-val" id="m-dsr">—</div><div class="m-lbl">d_safe,r</div></div>
+    <div class="metric"><div class="m-val" id="m-u">0</div><div class="m-lbl">u [-1,1]</div></div>
+    <div class="metric"><div class="m-val" id="m-mode">—</div><div class="m-lbl">Status</div></div>
+  </div>
+  <div class="charts">
+    <div class="chart-block">
+      <div class="chart-hdr"><span class="chart-title">Velocity Profiles (m/s)</span>
+        <div class="legend">
+          <div class="leg"><div class="leg-line" style="background:#10b981"></div>Ego</div>
+          <div class="leg"><div class="leg-line" style="background:#00d4ff"></div>Front</div>
+          <div class="leg"><div class="leg-line" style="background:#ec4899"></div>Rear</div>
+          <div class="leg"><div class="leg-line" style="background:#f59e0b;opacity:.7"></div>v_ref</div>
+        </div></div>
+      <canvas class="chart" id="cVel"></canvas>
+    </div>
+    <div class="chart-block">
+      <div class="chart-hdr"><span class="chart-title">Distance vs Safe Distance (m)</span>
+        <div class="legend">
+          <div class="leg"><div class="leg-line" style="background:#00d4ff"></div>d_rel,f</div>
+          <div class="leg"><div class="leg-line" style="background:#00d4ff;opacity:.4"></div>d_safe,f</div>
+          <div class="leg"><div class="leg-line" style="background:#ec4899"></div>d_rel,r</div>
+          <div class="leg"><div class="leg-line" style="background:#ec4899;opacity:.4"></div>d_safe,r</div>
+        </div></div>
+      <canvas class="chart" id="cDist"></canvas>
+    </div>
+  </div>
+</div>
+</div>
+<div id="alertBox"></div>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// HARDWARE PARAMETERS
+// ═══════════════════════════════════════════════════════════════════
+const P = {
+  mass: 0.60, Cr: 0.035, Cd: 0.80, Af: 0.001, rho: 1.2, kT: 0.520,
+  HWT: 0.70, dss: 0.25, hsd: 0.05, amax: 0.40, amin: -0.60, vset: 0.38,
+  MIN_PWM: 95, MAX_PWM: 255,   
+  snsNoise: 0.000, encNoise: 0.00,
+  Np1: 10, Nc1: 3, Ts1: 0.50, 
+  Q1f: 1000, Q1r: 800, Q1v: 10, R1: 100,
+  Np2: 10, Nc2: 2, Q2: 1000, R2: 1000, Ts: 0.20,
+  gapF: 0.50, gapR: 1.10, dur: 35, spd: 4
+};
+const G9 = 9.81;
+let S = {}, H = {}, scenario = 'sc1', running = false, animId = null, wallLast = null, simAccum = 0;
+let mpc1Timer = 0;
+
+function dsafe(v) { return P.HWT * Math.max(v, 0) + P.dss; }
+
+function fv(t) {
+  const v = P.vset;
+  // Sc1 (Journal Fig.15): front starts at vset, brakes to 22/24*vset t=5→9
+  if (scenario === 'sc1') {
+    if (t < 5)  return v;
+    if (t < 9)  return v - (v - v*(22/24))*(t-5)/4;
+    return v*(22/24);
+  }
+  // Sc2 (Journal Fig.20): front constant at 22/24*vset
+  if (scenario === 'sc2') return v*(22/24);
+  // Sc3 Squeeze: front brakes gently t=5→12
+  if (scenario === 'sc3') {
+    if (t < 5)  return v;
+    if (t < 12) return v - (v - v*(22/24))*(t-5)/7;
+    return v*(22/24);
+  }
+  // Sc4 Cut-In: front simulated appearing at close range t=4 (handled via gap init)
+  if (scenario === 'sc4') {
+    if (t < 8)  return v*(24/24);
+    if (t < 14) return v*(24/24) - (v*(24/24)-v*(21/24))*(t-8)/6;
+    return v*(21/24);
+  }
+  // Sc5 Rear Emergency: front steady at 22/24*vset
+  if (scenario === 'sc5') return v*(22/24);
+  // Sc6 Stop-and-Go: front stops at t=5, restarts at t=18
+  if (scenario === 'sc6') {
+    if (t < 5)  return v;
+    if (t < 7)  return v*(1-(t-5)/2);
+    if (t < 18) return 0;
+    if (t < 22) return v*(t-18)/4;
+    return v;
+  }
+  // Sc7 Dual-Aware Cruise: all vehicles at vset
+  return v;
+}
+
+function rv(t) {
+  const v = P.vset;
+  // Sc1 (Journal Fig.15): rear constant at 22/24*vset
+  if (scenario === 'sc1') return v*(22/24);
+  // Sc2 (Journal Fig.20): rear 28/24 (capped at 0.95) → 20/24 t=12→18
+  if (scenario === 'sc2') {
+    const rp = Math.min(v*(28/24), v*0.95);
+    const re = v*(20/24);
+    if (t < 2)  return rp;
+    if (t < 18) return rp + (re-rp)*(t-2)/16;
+    return re;
+  }
+  // Sc3 Squeeze: rear speeds up gently toward ego t=0→8
+  if (scenario === 'sc3') {
+    if (t < 8)  return v*(20/24) + (v*(22/24)-v*(20/24))*t/8;
+    return v*(22/24);
+  }
+  // Sc4 Cut-In: rear constant and safe
+  if (scenario === 'sc4') return v*(20/24);
+  // Sc5 Rear Emergency: rear surges then slows
+  if (scenario === 'sc5') {
+    const rp = v*0.93;
+    const re = v*(22/24);
+    if (t < 3)  return rp;
+    if (t < 12) return rp + (re-rp)*(t-3)/9;
+    return re;
+  }
+  // Sc6 Stop-and-Go: rear constant and well back
+  if (scenario === 'sc6') return v*(20/24);
+  // Sc7 Dual-Aware Cruise: rear at vset
+  return v;
+}
+
+function resetState() {
+  const v0 = P.vset;
+  const Fa0 = 0.5 * P.rho * P.Cd * P.Af * v0 * v0;
+  const Rx0 = P.Cr * P.mass * G9;
+  const u_ss = (Fa0 + Rx0) / P.kT;
+  
+  S = { 
+    t: 0, ep: 0, ev: v0, fp: P.gapF, rp: -P.gapR, pu: u_ss, 
+    vref: v0, ae_opt: 0, prevAe: 0, vset: P.vset 
+  };
+  H = { t:[], ve:[], vref:[], vf:[], vr:[], drelF:[], dsafeF:[], drelR:[], dsafeR:[], u:[], du:[], jerk:[] };
+  mpc1Timer = 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HILDRETH QP
+// ═══════════════════════════════════════════════════════════════════
+function hildrethQP(E, f, M, gamma, maxIter=200) {
+  const n = f.length, ncon = gamma.length;
+  let x = solveLinear(E, f.map(v => -v));
+  let allSatisfied = true;
+  for (let i = 0; i < ncon; i++) {
+    let sum = 0; for (let j = 0; j < n; j++) sum += M[i][j] * x[j];
+    if (sum > gamma[i] + 1e-8) { allSatisfied = false; break; }
+  }
+  if (allSatisfied) return x;
+  const Einv = invertMatrix(E);
+  if (!Einv) return x; 
+  const MxEinv = matMul(M, Einv), Mt = transpose(M), HH = matMul(MxEinv, Mt);
+  const Einvf = matVecMul(Einv, f), k_vec = [];
+  for (let i = 0; i < ncon; i++) {
+    let sum = gamma[i]; for (let j = 0; j < n; j++) sum += M[i][j] * Einvf[j];
+    k_vec.push(sum);
+  }
+  const lambda = new Array(ncon).fill(0);
+  for (let iter = 0; iter < maxIter; iter++) {
+    let maxChange = 0;
+    for (let i = 0; i < ncon; i++) {
+      let sum = 0; for (let j = 0; j < ncon; j++) { if (j !== i) sum += HH[i][j] * lambda[j]; }
+      const newLam = Math.max(0, -(k_vec[i] + sum) / (HH[i][i] + 1e-12));
+      maxChange = Math.max(maxChange, Math.abs(newLam - lambda[i])); lambda[i] = newLam;
+    }
+    if (maxChange < 1e-8) break;
+  }
+  const fMod = f.slice();
+  for (let i = 0; i < n; i++) { for (let j = 0; j < ncon; j++) fMod[i] += Mt[i][j] * lambda[j]; }
+  return solveLinear(E, fMod.map(v => -v));
+}
+
+function solveLinear(A, b) {
+  const n = b.length, aug = A.map((row, i) => [...row, b[i]]);
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    if (Math.abs(aug[col][col]) < 1e-12) continue;
+    const pivot = aug[col][col];
+    for (let j = col; j <= n; j++) aug[col][j] /= pivot;
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = aug[row][col];
+      for (let j = col; j <= n; j++) aug[row][j] -= factor * aug[col][j];
+    }
+  }
+  return aug.map(row => row[n]);
+}
+
+function invertMatrix(A) {
+  const n = A.length, aug = A.map((row, i) => { const ext = new Array(n).fill(0); ext[i] = 1; return [...row, ...ext]; });
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    if (Math.abs(aug[col][col]) < 1e-12) return null;
+    const pivot = aug[col][col];
+    for (let j = 0; j < 2 * n; j++) aug[col][j] /= pivot;
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = aug[row][col];
+      for (let j = 0; j < 2 * n; j++) aug[row][j] -= factor * aug[col][j];
+    }
+  }
+  return aug.map(row => row.slice(n));
+}
+
+function matMul(A, B) {
+  const m = A.length, n = B[0].length, p = B.length, C = Array.from({length: m}, () => new Array(n).fill(0));
+  for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) for (let k = 0; k < p; k++) C[i][j] += A[i][k] * B[k][j];
+  return C;
+}
+function matVecMul(A, v) { return A.map(row => row.reduce((s, a, j) => s + a * v[j], 0)); }
+function transpose(A) { return A[0].map((_, j) => A.map(row => row[j])); }
+
+// ═══════════════════════════════════════════════════════════════════
+// MPC1: HIGH-LEVEL (Dynamic Barrier Constraints)
+// ═══════════════════════════════════════════════════════════════════
+function mpc1Run(ve, drF, drR, vfNow, vrNow, vset, prevVref, prevAe) {
+  const Ts = P.Ts1, Np = P.Np1, Nc = P.Nc1;
+  const ve0 = Math.max(ve, 0.05);
+  const dsF = dsafe(ve0), dsR = dsafe(vrNow);
+  
+  let adaptive_Q1r = P.Q1r;
+  const rel_v_rear = vrNow - ve0;
+  if (rel_v_rear > 0 && drR < 2.0) {  
+    const ttc_r = drR / Math.max(rel_v_rear, 0.001);
+    if (ttc_r < 20) adaptive_Q1r += 2000 / Math.max(ttc_r, 0.05);
+  }
+
+  let adaptive_Q1f = P.Q1f;
+  const rel_v_front = ve0 - vfNow;
+  if (rel_v_front > 0 && drF < 2.0) {
+    const ttc_f = drF / Math.max(rel_v_front, 0.001);
+    if (ttc_f < 20) adaptive_Q1f += 2000 / Math.max(ttc_f, 0.05);
+  }
+  
+  const buffer = 0.2; 
+  const vref0 = prevVref;
+  const f0_df = [], f0_dr = [], f0_v = []; 
+  const Gdf = [], Gdr = [], Gv = []; 
+  
+  for (let i = 0; i < Np; i++) {
+    const dt = (i + 1) * Ts;
+    
+    const vref_free = vref0 + prevAe * dt;
+    
+    const pred_drF_free = drF + (vfNow - vref0) * dt - 0.5 * prevAe * dt * dt;
+    const pred_dsF_free = P.HWT * vref_free + P.dss;
+    f0_df.push(pred_drF_free - pred_dsF_free);
+    
+    const pred_drR_free = drR + (vref0 - vrNow) * dt + 0.5 * prevAe * dt * dt;
+    const pred_dsR_free = P.HWT * vrNow + P.dss;
+    f0_dr.push(pred_drR_free - pred_dsR_free);
+    
+    f0_v.push(vref_free - vset);
+    
+    const gdf_row = [], gdr_row = [], gv_row = [];
+    for (let j = 0; j < Nc; j++) {
+      if (j <= i) {
+        const dt_act = (i - j + 1) * Ts;
+        const dv = dt_act, dx = 0.5 * dt_act * dt_act;
+        gdf_row.push(-dx - P.HWT * dv);
+        gdr_row.push(dx);
+        gv_row.push(dv);
+      } else {
+        gdf_row.push(0); gdr_row.push(0); gv_row.push(0);
+      }
+    }
+    Gdf.push(gdf_row); Gdr.push(gdr_row); Gv.push(gv_row);
+  }
+  
+  const Wf_arr = [], Wr_arr = [], ef_base = [], er_base = [];
+  
+  for (let k = 0; k < Np; k++) {
+    let wf = 0;
+    if (f0_df[k] <= 0) { wf = adaptive_Q1f; ef_base.push(f0_df[k]); }
+    else if (f0_df[k] < buffer) { 
+      let ratio = (buffer - f0_df[k]) / buffer;
+      wf = adaptive_Q1f * ratio * ratio; 
+      ef_base.push(0); 
+    } else { ef_base.push(0); }
+    Wf_arr.push(wf);
+    
+    let wr = 0;
+    if (f0_dr[k] <= 0) { wr = adaptive_Q1r; er_base.push(f0_dr[k]); }
+    else if (f0_dr[k] < buffer) { 
+      let ratio = (buffer - f0_dr[k]) / buffer;
+      wr = adaptive_Q1r * ratio * ratio; 
+      er_base.push(0); 
+    } else { er_base.push(0); }
+    Wr_arr.push(wr);
+  }
+  
+  const E_mat = [], f_vec = [];
+  for (let i = 0; i < Nc; i++) {
+    E_mat.push([]);
+    for (let j = 0; j < Nc; j++) {
+      let s = 0;
+      for (let k = 0; k < Np; k++) {
+        s += Wf_arr[k] * Gdf[k][i] * Gdf[k][j];
+        s += Wr_arr[k] * Gdr[k][i] * Gdr[k][j];
+        s += P.Q1v * Gv[k][i] * Gv[k][j];
+      }
+      E_mat[i].push(2 * s + (i === j ? 2 * P.R1 + 1e-5 : 0));
+    }
+    let fv = 0;
+    for (let k = 0; k < Np; k++) {
+      fv += Wf_arr[k] * Gdf[k][i] * ef_base[k]; 
+      fv += Wr_arr[k] * Gdr[k][i] * er_base[k];
+      fv += P.Q1v * Gv[k][i] * f0_v[k];
+    }
+    f_vec.push(2 * fv);
+  }
+  
+  const M_con = [], gamma_con = [];
+  for (let j = 0; j < Nc; j++) {
+    const rowUp = new Array(Nc).fill(0); for (let k = 0; k <= j; k++) rowUp[k] = 1;
+    M_con.push(rowUp); gamma_con.push(P.amax - prevAe);
+    const rowLo = new Array(Nc).fill(0); for (let k = 0; k <= j; k++) rowLo[k] = -1;
+    M_con.push(rowLo); gamma_con.push(prevAe - P.amin);
+  }
+  
+  const dU = hildrethQP(E_mat, f_vec, M_con, gamma_con, 150);
+  let ae_new = prevAe + dU[0];
+  ae_new = Math.max(P.amin, Math.min(P.amax, ae_new));
+  
+  // The MPC generates optimal acceleration, which is integrated continuously.
+  return { ae: ae_new };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MPC2: LOW-LEVEL (WITH ACTUATOR SLEW-RATE LIMITER AND FRICTION REJECTION)
+// ═══════════════════════════════════════════════════════════════════
+function mpc2Run(ve, drF, drR, vfNow, vrNow, vref, prevU) {
+  const Ts = P.Ts, Np = P.Np2, Nc = P.Nc2, m = P.mass;
+  const ve0 = Math.max(ve, 0.05);
+  
+  const dragCoeff = (P.rho * P.Cd * P.Af * ve0) / m;
+  const R_resist = (P.Cr * P.mass * G9) / m; 
+  
+  const Ad = [[1, 0, -Ts], [0, 1, Ts], [0, 0, 1 - Ts * dragCoeff]];
+  const Bd = [0, 0, (P.kT / m) * Ts];
+  const Pd = [[Ts, 0], [0, -Ts], [0, 0]];
+  const Dd = [0, 0, -R_resist * Ts]; // Disturbance vector for rolling resistance
+  
+  const C_c = [0, 0, 1];
+  
+  const x0 = [drF, drR, ve0];
+  const freeY = [];
+  let xFree = [...x0];
+  const g = [vfNow, vrNow]; 
+  
+  for (let i = 0; i < Np; i++) {
+    const xNew = [0, 0, 0];
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) xNew[r] += Ad[r][c] * xFree[c];
+      xNew[r] += Bd[r] * prevU;
+      for (let c = 0; c < 2; c++) xNew[r] += Pd[r][c] * g[c];
+      xNew[r] += Dd[r]; 
+    }
+    xFree = xNew;
+    freeY.push(C_c[0] * xFree[0] + C_c[1] * xFree[1] + C_c[2] * xFree[2]); 
+  }
+  
+  const stepResp = [];
+  for (let i = 0; i < Np; i++) {
+    stepResp.push([]);
+    for (let j = 0; j < Nc; j++) {
+      if (j <= i) {
+        let resp = 0; for (let k = 0; k <= i - j; k++) resp += Math.pow(1 - Ts * dragCoeff, k) * Bd[2];
+        stepResp[i].push(resp);
+      } else { stepResp[i].push(0); }
+    }
+  }
+  
+  const eps = freeY.map(y => vref - y);
+  const E_mat = [], f_vec = [];
+  for (let i = 0; i < Nc; i++) {
+    E_mat.push([]);
+    for (let j = 0; j < Nc; j++) {
+      let s = 0; for (let k = 0; k < Np; k++) s += P.Q2 * stepResp[k][i] * stepResp[k][j];
+      E_mat[i].push(2 * s + (i === j ? 2 * P.R2 + 1e-5 : 0));
+    }
+    let fv = 0; for (let k = 0; k < Np; k++) fv -= 2 * P.Q2 * stepResp[k][i] * eps[k];
+    f_vec.push(fv);
+  }
+  
+  const M_con = [], gamma_con = [];
+  for (let j = 0; j < Nc; j++) {
+    const rowUp = new Array(Nc).fill(0); for (let k = 0; k <= j; k++) rowUp[k] = 1;
+    M_con.push(rowUp); gamma_con.push(1 - prevU);
+    const rowLo = new Array(Nc).fill(0); for (let k = 0; k <= j; k++) rowLo[k] = -1;
+    M_con.push(rowLo); gamma_con.push(prevU + 1);
+  }
+  
+  const dU = hildrethQP(E_mat, f_vec, M_con, gamma_con, 150);
+  
+  const max_du = 0.10; 
+  let dU_clamped = Math.max(-max_du, Math.min(max_du, dU[0]));
+  
+  let uNew = prevU + dU_clamped;
+  return { u: Math.max(-1, Math.min(1, uNew)), du: dU_clamped };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PLANT MODEL & LOOP
+// ═══════════════════════════════════════════════════════════════════
+function plantStep(ve, u) {
+  const Fx = P.kT * (u > 0 ? u : 0);
+  const brakeForce = (u < 0) ? (P.kT * u) : 0; 
+  const Fa = 0.5 * P.rho * P.Cd * P.Af * ve * ve;
+  const Rx = P.Cr * P.mass * G9;
+  
+  let resist = Rx;
+  if (ve <= 0.01 && Fx < Rx) {
+    resist = Fx; 
+  }
+  
+  let acc = (Fx + brakeForce - Fa - resist) / P.mass;
+  acc = Math.max(P.amin, Math.min(P.amax, acc));
+  return Math.max(0, ve + acc * P.Ts);
+}
+
+function simStep() {
+  const Ts = P.Ts, t = S.t;
+  const ft = fv(t), rt = rv(t);
+  
+  S.fp += ft * Ts; S.rp += rt * Ts;
+  
+  const drF_true = Math.max(0, S.fp - S.ep);
+  const drR_true = Math.max(0, S.ep - S.rp);
+  
+  const drF_meas = Math.max(0, drF_true + (Math.random() * 2 - 1) * P.snsNoise);
+  const drR_meas = Math.max(0, drR_true + (Math.random() * 2 - 1) * P.snsNoise);
+  const ev_meas = Math.max(0, S.ev + (Math.random() * 2 - 1) * P.encNoise);
+  
+  mpc1Timer += Ts;
+  if (mpc1Timer >= P.Ts1 - 1e-6) {
+    mpc1Timer = 0;
+    const m1 = mpc1Run(ev_meas, drF_meas, drR_meas, ft, rt, P.vset, S.vref, S.prevAe);
+    S.ae_opt = m1.ae;
+    S.prevAe = m1.ae;
+  }
+  
+  // FIXED: Continuous integration of optimal acceleration (ae) 
+  // This generates a perfectly smooth reference speed curve without any lag filters.
+  S.vref += S.ae_opt * Ts;
+  S.vref = Math.max(0, Math.min(P.vset, S.vref)); // Bounded strictly by vset
+  
+  const m2 = mpc2Run(ev_meas, drF_meas, drR_meas, ft, rt, S.vref, S.pu);
+  S.pu = m2.u;
+  
+  const prevVe = S.ev;
+  S.ev = plantStep(S.ev, m2.u); S.ep += S.ev * Ts;
+  
+  let fc = false, rc = false;
+  if (S.ep >= S.fp - P.hsd) { S.ep = S.fp - P.hsd; S.ev = Math.min(S.ev, ft); fc = true; showAlert('⚠ FRONT COLLISION'); }
+  if (S.rp >= S.ep - P.hsd) { S.rp = S.ep - P.hsd; rc = true; showAlert('⚠ REAR COLLISION'); }
+  
+  const dsF = dsafe(S.ev), dsR = dsafe(rt);
+  H.t.push(t); H.ve.push(S.ev); H.vref.push(S.vref); H.vf.push(ft); H.vr.push(rt);
+  H.drelF.push(drF_true); H.dsafeF.push(dsF); H.drelR.push(drR_true); H.dsafeR.push(dsR);
+  H.u.push(m2.u); H.du.push(m2.du); H.jerk.push(Math.abs(S.ev - prevVe) / Ts / Ts);
+  
+  S.t += Ts;
+  return { vref: S.vref, drF: drF_true, drR: drR_true, dsF, dsR, u: m2.u, fc, rc };
+}
+
+function loop(wall) {
+  if (!running) return;
+  if (!wallLast) wallLast = wall;
+  const wdt = (wall - wallLast) / 1000; wallLast = wall; simAccum += wdt * P.spd;
+  let steps = 0, last = null;
+  while (simAccum >= P.Ts && S.t < P.dur) { simAccum -= P.Ts; last = simStep(); steps++; if (steps > 80) break; }
+  render(); if (last) updateMetrics(last);
+  if (S.t >= P.dur) {
+    running = false; document.getElementById('runBtn').textContent = '▶ RUN';
+    document.getElementById('runBtn').classList.remove('active'); setStatus('COMPLETE', 'var(--cyan)');
+    showAlert('Simulation complete', 'info'); computeMetrics(); return;
+  }
+  animId = requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI & GRAPHICS
+// ═══════════════════════════════════════════════════════════════════
+function drawScene() {
+  const c = document.getElementById('sceneCanvas'); const W = c.width, H2 = c.height;
+  const ctx = c.getContext('2d'); ctx.clearRect(0, 0, W, H2);
+  ctx.fillStyle = '#040608'; ctx.fillRect(0, 0, W, H2);
+  const GY = H2 * 0.72, viewW = 3.0, centre = S.ep; 
+  const toX = p => ((p - centre + viewW * 0.5) / viewW) * W;
+  ctx.strokeStyle = '#1e2d45'; ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+  function drawCar(pos, label, color) {
+    const rx = toX(pos), rw = 30, rh = 16, ry = GY - rh;
+    ctx.fillStyle = '#0c1e35'; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1a2535';
+    ctx.beginPath(); ctx.arc(rx + 6, GY, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(rx + 24, GY, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = '7px JetBrains Mono'; ctx.textAlign = 'center'; ctx.fillText(label, rx + rw / 2, ry - 4);
+  }
+  drawCar(S.rp, 'REAR', '#ec4899'); drawCar(S.ep, 'EGO', '#10b981'); drawCar(S.fp, 'FRONT', '#00d4ff');
+}
+function drawChart(id, datasets) {
+  const c = document.getElementById(id); const W = c.width, CH = c.height;
+  const ctx = c.getContext('2d'); ctx.clearRect(0, 0, W, CH);
+  if (!H.t || !H.t.length) return;
+  const tMax = P.dur, pad = 36;
+  let mn = Infinity, mx = -Infinity;
+  datasets.forEach(d => { if (!d.data || !d.data.length) return; d.data.forEach(v => { if (v < mn) mn = v; if (v > mx) mx = v; }); });
+  if (mn === mx) { mn -= 0.1; mx += 0.1; }
+  const yMin = mn - (mx - mn) * 0.12, yMax = mx + (mx - mn) * 0.12;
+  ctx.strokeStyle = 'rgba(30,45,69,0.7)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) { const y = CH * i / 3; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.fillStyle = '#2a3d55'; ctx.font = '7px JetBrains Mono'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 2; i++) ctx.fillText((yMax - (yMax - yMin) * i / 2).toFixed(2), pad - 2, CH * i / 2 + 3);
+  const toX = i => pad + (H.t[i] / tMax) * (W - pad - 4), toY = v => CH - (v - yMin) / (yMax - yMin) * CH * 0.88 - CH * 0.06;
+  const step = Math.max(1, Math.floor(H.t.length / 800));
+  datasets.forEach(({ data, color, dash, alpha }) => {
+    if (!data || !data.length) return;
+    ctx.globalAlpha = alpha || 1; ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.setLineDash(dash || []); ctx.beginPath();
+    for (let i = 0; i < data.length; i += step) i === 0 ? ctx.moveTo(toX(i), toY(data[i])) : ctx.lineTo(toX(i), toY(data[i]));
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1; ctx.setLineDash([]);
+}
+function render() {
+  ['sceneCanvas', 'cVel', 'cDist'].forEach(id => { const c = document.getElementById(id); c.width = c.clientWidth; c.height = c.clientHeight; });
+  drawScene();
+  drawChart('cVel', [{ data: H.ve, color: '#10b981' }, { data: H.vf, color: '#00d4ff' }, { data: H.vr, color: '#ec4899' }, { data: H.vref, color: '#f59e0b', dash: [3, 4], alpha: 0.7 }]);
+  drawChart('cDist', [{ data: H.drelF, color: '#00d4ff' }, { data: H.dsafeF, color: '#00d4ff', dash: [4, 4], alpha: 0.4 }, { data: H.drelR, color: '#ec4899' }, { data: H.dsafeR, color: '#ec4899', dash: [4, 4], alpha: 0.4 }]);
+  document.getElementById('simClock').textContent = `t = ${S.t.toFixed(2)}s`;
+}
+function updateMetrics(l) {
+  const set = (id, val, cls) => { const el = document.getElementById(id); el.textContent = val; el.className = 'm-val ' + (cls||''); };
+  set('m-v', S.ev.toFixed(2)); set('m-vref', S.vref.toFixed(2));
+  set('m-df', l.drF.toFixed(2), l.drF < l.dsF ? 'bad' : 'ok'); set('m-dsf', l.dsF.toFixed(2));
+  set('m-dr', l.drR.toFixed(2), l.drR < l.dsR ? 'warn' : 'ok'); set('m-dsr', l.dsR.toFixed(2));
+  set('m-u', l.u.toFixed(3)); set('m-mode', l.fc ? 'F-COL' : l.rc ? 'R-COL' : 'OK', l.fc || l.rc ? 'bad' : 'ok');
+}
+function computeMetrics() {
+  if (H.t.length < 10) return;
+  let sumDdfR = 0, sumDdrR = 0, minDrR = Infinity, sumJ = 0, cnt = 0;
+  for (let i = 0; i < H.t.length; i++) {
+    if (H.dsafeF[i] > 0.05) sumDdfR += (H.drelF[i] - H.dsafeF[i]) / H.dsafeF[i];
+    if (H.dsafeR[i] > 0.05) sumDdrR += (H.drelR[i] - H.dsafeR[i]) / H.dsafeR[i];
+    if (H.drelR[i] < minDrR) minDrR = H.drelR[i];
+    sumJ += H.jerk[i]; cnt++;
+  }
+  document.getElementById('perfBox').innerHTML = `Avg Δdf ratio: <span class="pv">${(sumDdfR/cnt).toFixed(4)}</span><br>Avg Δdr ratio: <span class="pv">${(sumDdrR/cnt).toFixed(4)}</span><br>Min d_rel,r: <span class="pv">${minDrR.toFixed(3)} m</span><br>Avg jerk: <span class="pv">${(sumJ/cnt).toFixed(3)} m/s³</span>`;
+}
+function setP(k, v, dec) { P[k] = parseFloat(v); document.getElementById('v-' + k).textContent = dec === 0 ? parseInt(v) : parseFloat(v).toFixed(dec); }
+
+function setScenario(sc) {
+  scenario = sc;
+  document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sc-' + sc).classList.add('active');
+  const v = P.vset, hw = P.HWT, ds = P.dss;
+  const dsafeV = hw*v + ds;  // d_safe at vset
+  if      (sc === 'sc1') { P.gapF = 0.50; P.gapR = 0.84; P.dur = 35; }
+  else if (sc === 'sc2') { P.gapF = 0.50; P.gapR = 1.10; P.dur = 35; }
+  // Sc3 Squeeze: both gaps under pressure from the start
+  else if (sc === 'sc3') { P.gapF = 0.46; P.gapR = 0.72; P.dur = 35; }
+  // Sc4 Cut-In: front initially far, then cuts in close at t=4
+  // Simulate cut-in by starting fp at a CLOSE distance
+  else if (sc === 'sc4') { P.gapF = 0.38; P.gapR = 1.20; P.dur = 35; }
+  // Sc5 Rear Emergency: rear starts close, surges toward ego
+  else if (sc === 'sc5') { P.gapF = 0.90; P.gapR = 0.82; P.dur = 35; }
+  // Sc6 Stop-and-Go: front close, rear well back
+  else if (sc === 'sc6') { P.gapF = 0.46; P.gapR = 1.40; P.dur = 40; }
+  // Sc7 Cruise: gaps at exactly d_safe — steady state test
+  else if (sc === 'sc7') { P.gapF = dsafeV; P.gapR = dsafeV*1.2; P.dur = 30; }
+  const _lbl={'sc1':'Sc1 Journal Fig.15 — Front brakes t=5→9s | Rear constant 22\/24*vset','sc2':'Sc2 Journal Fig.20 — Rear approaches 28→20*vset\/24 | Front constant','sc3':'Sc3 Squeeze — Front brakes + Rear accelerates simultaneously (dual-aware stress)','sc4':'Sc4 Cut-In — Ego encounters close front vehicle | Tests Q1f TTC response','sc5':'Sc5 Rear Emergency — Fast rear surge then retreat | Tests Q1r adaptive boost','sc6':'Sc6 Stop-and-Go — Front stops completely then restarts | Ego full recovery','sc7':'Sc7 Steady-State Cruise — Both gaps at d_safe | Zero-error validation'};
+  document.getElementById('sceneLabel').textContent = _lbl[sc] || sc;
+  resetSim();
+}
+
+function toggleRun() { if (running) { running = false; cancelAnimationFrame(animId); document.getElementById('runBtn').textContent = '▶ RUN'; document.getElementById('runBtn').classList.remove('active'); setStatus('PAUSED', 'var(--amber)'); } else { if (S.t >= P.dur) resetSim(); running = true; wallLast = null; simAccum = 0; document.getElementById('runBtn').textContent = '⏸ PAUSE'; document.getElementById('runBtn').classList.add('active'); setStatus('RUNNING', 'var(--green)'); animId = requestAnimationFrame(loop); } }
+function resetSim() { running = false; cancelAnimationFrame(animId); resetState(); document.getElementById('runBtn').textContent = '▶ RUN'; document.getElementById('runBtn').classList.remove('active'); setStatus('READY', 'var(--green)'); document.getElementById('simClock').textContent = 't = 0.00s'; document.getElementById('alertBox').innerHTML = ''; document.getElementById('perfBox').innerHTML = 'Run simulation to compute metrics...'; render(); }
+function setStatus(txt, col) { document.getElementById('statusTxt').textContent = txt; document.getElementById('liveDot').style.background = col; document.getElementById('liveDot').style.boxShadow = `0 0 8px ${col}`; }
+function showAlert(msg, type = 'warn') { const box = document.getElementById('alertBox'); const el = document.createElement('div'); el.className = 'alert' + (type === 'info' ? ' info' : ''); el.textContent = `${msg} @ t=${S.t.toFixed(1)}s`; box.appendChild(el); setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; setTimeout(() => el.remove(), 400); }, 4000); }
+function exportCSV(fullRes=false) {
+  if (!H.t.length) { alert('Run simulation first.'); return; }
+  let csv = ['t', 'v_ego', 'v_ref', 'v_front', 'v_rear', 'd_rel_f', 'd_safe_f', 'delta_df', 'd_rel_r', 'd_safe_r', 'delta_dr', 'u', 'delta_u', 'PWM_Throttle', 'PWM_Brake'].join(',') + '\n';
+  let lastLogTime = -1;
+  for (let i = 0; i < H.t.length; i++) {
+    if (fullRes || H.t[i] - lastLogTime >= 0.999) {
+      let uVal = H.u[i]; 
+      
+      const u_db_exp = P.MIN_PWM / P.MAX_PWM;
+      const pwmOut = uVal >= u_db_exp ? Math.round(P.MIN_PWM + (P.MAX_PWM - P.MIN_PWM) * uVal) : 0;
+      
+      csv += [H.t[i].toFixed(3), H.ve[i].toFixed(4), H.vref[i].toFixed(4), H.vf[i].toFixed(4), H.vr[i].toFixed(4), H.drelF[i].toFixed(4), H.dsafeF[i].toFixed(4), (H.drelF[i] - H.dsafeF[i]).toFixed(4), H.drelR[i].toFixed(4), H.dsafeR[i].toFixed(4), (H.drelR[i] - H.dsafeR[i]).toFixed(4), uVal.toFixed(5), H.du[i].toFixed(5), pwmOut, 0].join(',') + '\n'; lastLogTime = Math.floor(H.t[i]);
+    }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `hardware_mpc_${scenario}_${fullRes?'full':'1sec'}.csv`; a.click();
+}
+window.addEventListener('resize', render); resetSim();
+</script>
+</body>
+</html>
