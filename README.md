@@ -37,13 +37,6 @@ The NumPy MLP surrogate was validated against the mathematical MPC and standard 
 * **Tracking Accuracy:** Demonstrated a 50% reduction in velocity-tracking RMSE over the TensorFlow PID baseline.
 * **Model Fidelity:** The front-aware surrogate achieved an $R^{2}$ correlation of 0.991 (Sim) and 0.988 (Real). The dual-aware surrogate achieved an $R^{2}$ of 0.947 with a Mean Absolute Error (MAE) of 0.022.
 
-## Artifacts & Visualizations
-*(Instructions for Revanth: Upload your hardware images and validation plots to an `assets` folder in your repository, then uncomment and update the placeholder links below)*
-
-* `![Hardware Architecture](./assets/system_block_diagram.png)` - System Block Diagram
-* `![Hardware Setup Image](./assets/car_setup.jpg)` - Robotic car setup with dual HC-SR04 sensors and Raspberry Pi
-* `![PWM Validation Plot](./assets/mpc_vs_mlp_validation.png)` - Near-perfect overlap between actual MPC PWM and MLP Predicted PWM
-* `[Watch the Hardware Demonstration Video](link_to_youtube_or_drive)`
 
 ## Future Work
 * Hardware-tuning of MPC1/MPC2 Q/R weights.
